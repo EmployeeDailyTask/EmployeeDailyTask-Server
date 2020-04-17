@@ -16,6 +16,7 @@ module.exports = function (req, res, next) {
                     })
                 } else {
                     req.loggedUser.level = userFound.level
+                    req.loggedUser.division = userFound.division
                     next()
                 }
             })

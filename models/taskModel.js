@@ -16,6 +16,10 @@ const taskSchema = new Schema({
     owner: {
         type: Schema.Types.ObjectId,
         ref: 'User'
+    },
+    division: {
+        type: String,
+        required: [true, 'Please fill in all fields.']
     }
 },
 {
