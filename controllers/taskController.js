@@ -13,8 +13,13 @@ class TaskController {
             owner: req.loggedUser._id,
             division: req.loggedUser.division
         })
-        .then(newTask => {
-            res.status(201).json(newTask)
+        .then(() => {
+            return Task.find({
+                owner: req.loggedUser._id
+            })
+        })
+        .then(userTasks => {
+            res.status(200).json(userTasks)
         })
         .catch(err => {
             next(err)
@@ -24,11 +29,16 @@ class TaskController {
     static findUserTasks (req, res, next) {
         const today = new Date()
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-        Task.find({
-            owner: req.loggedUser._id,
+        Task.updateMany({
+            status: 'Active',
             createdAt: {
-                $gte: startOfDay
+                $lt: startOfDay,
             }
+        }, {status: 'Expired'})
+        .then(() => {
+            return Task.find({
+                owner: req.loggedUser._id
+            })
         })
         .then(userTasks => {
             res.status(200).json(userTasks)
@@ -64,12 +74,17 @@ class TaskController {
     static managerFindTasks (req, res, next) {
         const today = new Date()
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-        Task.find({
-            division: req.loggedUser.division,
+        Task.updateMany({
+            status: 'Active',
             createdAt: {
-                $gte: startOfDay
+                $lt: startOfDay,
             }
-        }).populate('owner', ['firstName', 'lastName'])
+        }, {status: 'Expired'})
+        .then(() => {
+            return Task.find({
+                division: req.loggedUser.division
+            }).populate('owner', ['firstName', 'lastName'])
+        })
         .then(employeeTasks => {
             res.status(200).json(employeeTasks)
         })
@@ -110,8 +125,19 @@ class TaskController {
             title,
             description
         })
-        .then(updatedTask => {
-            res.status(200).json(updatedTask)
+        .then(editedTask => {
+            if (req.loggedUser.level === 'Manager' && editedTask.owner !== req.loggedUser._id) {
+                return Task.find({
+                    division: req.loggedUser.division
+                }).populate('owner', ['firstName', 'lastName'])
+            } else if (editedTask.owner === req.loggedUser._id){
+                return Task.find({
+                    owner: req.loggedUser._id
+                })
+            }
+        })
+        .then(userTasks => {
+            res.status(200).json(userTasks)
         })
         .catch(err => {
             next(err)
@@ -122,8 +148,19 @@ class TaskController {
         Task.findByIdAndUpdate(req.params.id, {
             status: req.body.status
         })
-        .then(updatedTask => {
-            res.status(200).json(updatedTask)
+        .then(() => {
+            if (req.body.status === 'Submitted') {
+                return Task.find({
+                    owner: req.loggedUser._id
+                })
+            } else {
+                return Task.find({
+                    division: req.loggedUser.division
+                }).populate('owner', ['firstName', 'lastName'])
+            }
+        })
+        .then(userTasks => {
+            res.status(200).json(userTasks)
         })
         .catch(err => {
             next(err)
@@ -133,7 +170,18 @@ class TaskController {
     static deleteTask (req, res, next) {
         Task.findByIdAndDelete(req.params.id)
         .then(deletedTask => {
-            res.status(200).json(deletedTask)
+            if (req.loggedUser.level === 'Manager' && deletedTask.owner !== req.loggedUser._id) {
+                return Task.find({
+                    division: req.loggedUser.division
+                }).populate('owner', ['firstName', 'lastName'])
+            } else if (`${deletedTask.owner}` === `${req.loggedUser._id}`){
+                return Task.find({
+                    owner: req.loggedUser._id
+                })
+            }
+        })
+        .then(userTasks => {
+            res.status(200).json(userTasks)
         })
         .catch(err => {
             next(err)

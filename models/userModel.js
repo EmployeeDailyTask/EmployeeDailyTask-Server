@@ -89,6 +89,17 @@ userSchema.pre('save', function(next) {
     })
 })
 
+userSchema.pre('findOneAndUpdate', function(next) {
+    return hashPassword(this._update.password)
+    .then(hashedPassword => {
+        this._update.password = hashedPassword
+        next()
+    })
+    .catch(err => {
+        next(err)
+    })
+})
+
 const user = mongoose.model('User', userSchema)
 
 module.exports = user

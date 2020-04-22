@@ -13,7 +13,7 @@ function managerAuthorization (req, res, next) {
 }
 
 function HRAuthorization (req, res, next) {
-    if(req.loggedUser.level !== 'Human Resources') {
+    if(req.loggedUser.division !== 'Human Resources') {
         next(unauthorized)
     } else {
         next()
